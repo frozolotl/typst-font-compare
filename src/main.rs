@@ -187,27 +187,27 @@ fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
                 .as_ref()
                 .map_or(true, |exclude_regex| !exclude_regex.is_match(family))
         })
-        .flat_map(|(_, mut fonts)| {
+        .flat_map(|(_, fonts)| {
+            // Filter out excluded fonts variants.
+            let mut fonts = fonts.filter(|font| {
+                let fitting_style = args
+                    .style
+                    .iter()
+                    .any(|&style| font.variant.style == style.into());
+                let fitting_weight = args.weight.is_empty()
+                    || args.weight.contains(&font.variant.weight.to_number());
+                let fitting_stretch = args.stretch.is_empty()
+                    || args
+                        .stretch
+                        .iter()
+                        .any(|&stretch| font.variant.stretch == stretch.into());
+                fitting_style && fitting_weight && fitting_stretch
+            });
             // Only iterate over one font if `--variants` is not set.
             fonts
                 .next()
                 .into_iter()
                 .chain(fonts.take_while(|_| args.variants))
-        })
-        .filter(|font| {
-            // Filter out excluded fonts variants.
-            let fitting_style = args
-                .style
-                .iter()
-                .any(|&style| font.variant.style == style.into());
-            let fitting_weight =
-                args.weight.is_empty() || args.weight.contains(&font.variant.weight.to_number());
-            let fitting_stretch = args.stretch.is_empty()
-                || args
-                    .stretch
-                    .iter()
-                    .any(|&stretch| font.variant.stretch == stretch.into());
-            fitting_style && fitting_weight && fitting_stretch
         })
         .collect();
 
