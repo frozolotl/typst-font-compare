@@ -119,6 +119,10 @@ Each page this tool generates can have a different height.
 Some PDF viewers don't handle this correctly.
 Try opening the file in Firefox instead.
 
+### I'm getting a file not found error when including a package.
+This tool does not automatically download packages.
+Compile your document using `typst compile` first and then `typst-font-compare` should work correctly.
+
 ### The program just crashes at some point.
 Images are stored in memory, making it potentially very memory intensive.
 Thus, your OOM killer (out-of-memory killer) shuts it down.
