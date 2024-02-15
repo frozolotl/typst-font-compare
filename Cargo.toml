@@ -1,0 +1,23 @@
+[package]
+name = "typst-font-compare"
+version = "0.1.0"
+edition = "2021"
+authors = ["frozolotl <frozolotl@protonmail.com>"]
+homepage = "https://github.com/frozolotl/typst-font-compare"
+repository = "https://github.com/frozolotl/typst-font-compare"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.4.18", features = ["derive", "env"] }
+color-eyre = "0.6.2"
+comemo = { git = "https://github.com/typst/comemo", rev = "ddb3773" }
+dirs = "5.0.1"
+fontdb = "0.16.1"
+rayon = "1.8.1"
+regex = "1.10.3"
+termcolor = "1.4.1"
+time = "0.3.34"
+typst = { git = "https://github.com/typst/typst", rev = "79e37ccbac080212dc42e996d760664c75d1a56f" }
+typst-pdf = { git = "https://github.com/typst/typst", rev = "79e37ccbac080212dc42e996d760664c75d1a56f" }
+typst-render = { git = "https://github.com/typst/typst", rev = "79e37ccbac080212dc42e996d760664c75d1a56f" }
