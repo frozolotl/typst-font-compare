@@ -28,6 +28,11 @@ We only want to compare a certain few fonts.
 typst-font-compare --include 'Roboto|Inter|Ubuntu' main.typ
 ```
 
+Only compare fonts that support italics.
+```sh
+typst-font-compare --style italic main.typ
+```
+
 ### Command-line Arguments
 ```
 A tool to compare how Typst documents would look using different fonts or font variants
@@ -60,6 +65,20 @@ Options:
           
           Takes priority over the include regex.
 
+      --style <STYLE>
+          Which font styles to check
+          
+          [default: normal]
+          [possible values: normal, italic, oblique]
+
+      --weight <WEIGHT>
+          Which font weights to check
+
+      --stretch <STRETCH>
+          Which font stretch values to check
+          
+          [possible values: ultra-condensed, extra-condensed, condensed, semi-condensed, normal, semi-expanded, expanded, extra-expanded, ultra-expanded]
+
       --root <DIR>
           Specify a different project root folder
           
@@ -71,7 +90,7 @@ Options:
           [env: TYPST_FONT_PATHS=]
 
       --ppi <PPI>
-          The resolution to render the variants to
+          The resolution to render the embedded variant content to
           
           [default: 300]
 

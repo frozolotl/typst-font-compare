@@ -2,7 +2,7 @@ mod world;
 
 use std::{fmt::Write, path::PathBuf};
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use color_eyre::eyre::{eyre, Context, Result};
 use rayon::prelude::*;
 use regex::Regex;
@@ -41,6 +41,15 @@ struct Args {
     /// Takes priority over the include regex.
     #[clap(short = 'e', long)]
     exclude: Option<String>,
+    /// Which font styles to check.
+    #[clap(long, default_value = "normal")]
+    style: Vec<FontStyle>,
+    /// Which font weights to check.
+    #[clap(long)]
+    weight: Vec<u16>,
+    /// Which font stretch values to check.
+    #[clap(long)]
+    stretch: Vec<FontStretch>,
     /// Specify a different project root folder.
     #[clap(long, env = "TYPST_ROOT", value_name = "DIR")]
     root: Option<PathBuf>,
@@ -52,7 +61,7 @@ struct Args {
         value_delimiter = if cfg!(windows) { ';' } else { ':' },
     )]
     font_paths: Vec<PathBuf>,
-    /// The resolution to render the variants to.
+    /// The resolution to render the embedded variant content to.
     #[clap(long, default_value_t = 300.0)]
     ppi: f32,
 }
@@ -185,6 +194,21 @@ fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
                 .into_iter()
                 .chain(fonts.take_while(|_| args.variants))
         })
+        .filter(|font| {
+            // Filter out excluded fonts variants.
+            let fitting_style = args
+                .style
+                .iter()
+                .any(|&style| font.variant.style == style.into());
+            let fitting_weight =
+                args.weight.is_empty() || args.weight.contains(&font.variant.weight.to_number());
+            let fitting_stretch = args.stretch.is_empty()
+                || args
+                    .stretch
+                    .iter()
+                    .any(|&stretch| font.variant.stretch == stretch.into());
+            fitting_style && fitting_weight && fitting_stretch
+        })
         .collect();
 
     // Sort fonts by family first and variant second.
@@ -209,13 +233,30 @@ fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
 
                     // Only set variant information if `--variants` is set.
                     if args.variants {
-                        library
-                            .styles
-                            .set(TextElem::set_weight(font.variant.weight));
-                        library
-                            .styles
-                            .set(TextElem::set_stretch(font.variant.stretch));
-                        library.styles.set(TextElem::set_style(font.variant.style));
+                        if args
+                            .style
+                            .iter()
+                            .any(|&style| font.variant.style == style.into())
+                        {
+                            library.styles.set(TextElem::set_style(font.variant.style));
+                        }
+                        if args.weight.is_empty()
+                            || args.weight.contains(&font.variant.weight.to_number())
+                        {
+                            library
+                                .styles
+                                .set(TextElem::set_weight(font.variant.weight));
+                        }
+                        if args.stretch.is_empty()
+                            || args
+                                .stretch
+                                .iter()
+                                .any(|&stretch| font.variant.stretch == stretch.into())
+                        {
+                            library
+                                .styles
+                                .set(TextElem::set_stretch(font.variant.stretch));
+                        }
                     }
                 });
 
@@ -255,4 +296,50 @@ struct Render {
     bytes: Bytes,
     width: u32,
     height: u32,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+enum FontStyle {
+    Normal,
+    Italic,
+    Oblique,
+}
+
+impl From<FontStyle> for typst::text::FontStyle {
+    fn from(value: FontStyle) -> Self {
+        match value {
+            FontStyle::Normal => typst::text::FontStyle::Normal,
+            FontStyle::Italic => typst::text::FontStyle::Italic,
+            FontStyle::Oblique => typst::text::FontStyle::Oblique,
+        }
+    }
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+enum FontStretch {
+    UltraCondensed,
+    ExtraCondensed,
+    Condensed,
+    SemiCondensed,
+    Normal,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl From<FontStretch> for typst::text::FontStretch {
+    fn from(value: FontStretch) -> Self {
+        match value {
+            FontStretch::UltraCondensed => typst::text::FontStretch::ULTRA_CONDENSED,
+            FontStretch::ExtraCondensed => typst::text::FontStretch::EXTRA_CONDENSED,
+            FontStretch::Condensed => typst::text::FontStretch::CONDENSED,
+            FontStretch::SemiCondensed => typst::text::FontStretch::SEMI_CONDENSED,
+            FontStretch::Normal => typst::text::FontStretch::NORMAL,
+            FontStretch::SemiExpanded => typst::text::FontStretch::SEMI_EXPANDED,
+            FontStretch::Expanded => typst::text::FontStretch::EXPANDED,
+            FontStretch::ExtraExpanded => typst::text::FontStretch::EXTRA_EXPANDED,
+            FontStretch::UltraExpanded => typst::text::FontStretch::ULTRA_EXPANDED,
+        }
+    }
 }
