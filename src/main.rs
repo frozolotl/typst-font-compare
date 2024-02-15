@@ -15,6 +15,7 @@ use typst::{
 };
 use world::SystemWorld;
 
+/// A tool to compare how Typst documents would look using different fonts or font variants.
 #[derive(Parser)]
 struct Args {
     /// Path to the Typst input file.
@@ -27,7 +28,7 @@ struct Args {
     /// Specify a different project root folder.
     #[clap(long, env = "TYPST_ROOT", value_name = "DIR")]
     root: Option<PathBuf>,
-    /// Whether to try each variant (weight).
+    /// Whether to try each variant (style, weight, stretch).
     #[clap(short, long)]
     variants: bool,
     /// Whether to enable font fallback.
@@ -37,12 +38,12 @@ struct Args {
     ///
     /// The exclude regex takes priority over this regex.
     #[clap(short = 'i', long)]
-    include_regex: Option<String>,
+    include: Option<String>,
     /// Exclude font families that match this regular expression.
     ///
     /// Takes priority over the include regex.
     #[clap(short = 'e', long)]
-    exclude_regex: Option<String>,
+    exclude: Option<String>,
     /// Adds additional directories to search for fonts in.
     #[clap(
         long = "font-path",
@@ -154,13 +155,13 @@ fn render_collection(world: &mut SystemWorld, args: &Args) -> Result<Vec<u8>> {
 fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
     let default_styles = world.library.styles.clone();
     let include_regex = args
-        .include_regex
+        .include
         .as_ref()
         .map(|regex| Regex::new(regex))
         .transpose()
         .wrap_err("failed to compile include regex")?;
     let exclude_regex = args
-        .exclude_regex
+        .exclude
         .as_ref()
         .map(|regex| Regex::new(regex))
         .transpose()
@@ -245,6 +246,8 @@ fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
     world.library.update(|library| {
         default_styles.clone_into(&mut library.styles);
     });
+
+    comemo::evict(1);
 
     images
 }
