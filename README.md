@@ -99,6 +99,17 @@ Options:
 ```
 
 ## Questions and Answers
+### The pages are much larger than necessary.
+Prefix your document with the following snippet to make them be only as large as needed:
+```typ
+#set page(height: auto, margin: .5cm)
+```
+
+You can also use this one to automatically scale all dimensions, though it can sometimes produce subpar results:
+```typ
+#set page(width: auto, height: auto, margin: .5cm)
+```
+
 ### Why do certain fonts not appear?
 This tool does not embed any fonts that might normally be embedded into Typst.
 You must either install them system-wide, or add a `--font-path fonts-folder` argument where `fonts-folder` contains the needed fonts.
