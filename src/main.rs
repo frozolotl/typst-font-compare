@@ -99,12 +99,10 @@ fn render_collection(world: &mut SystemWorld, args: &Args) -> Result<Vec<u8>> {
 
         #outline(indent: auto, title: [Fonts])
 
-        Created using #link("{pkg_homepage}")[`{pkg_name} v{pkg_version}` ({pkg_homepage})]. \
-        Tool authored by: #"{pkg_authors}".
+        Comparison created using #link("{pkg_homepage}")[`{pkg_name} v{pkg_version}` ({pkg_homepage})]. \
         "#,
         pkg_name = env!("CARGO_PKG_NAME"),
         pkg_version = env!("CARGO_PKG_VERSION"),
-        pkg_authors = env!("CARGO_PKG_AUTHORS"),
         pkg_homepage = env!("CARGO_PKG_HOMEPAGE"),
     )?;
 
