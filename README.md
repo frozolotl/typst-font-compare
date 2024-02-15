@@ -112,7 +112,7 @@ You can also use this one to automatically scale all dimensions, though it can s
 
 ### Why do certain fonts not appear?
 This tool does not embed any fonts that might normally be embedded into Typst.
-You must either install them system-wide, or add a `--font-path fonts-folder` argument where `fonts-folder` contains the needed fonts.
+You must either install them system-wide, or add a `--font-path fonts-folder` argument, where `fonts-folder` contains the needed fonts.
 
 ### The generated document looks weird in my PDF viewer.
 Each page this tool generates can have a different height.
