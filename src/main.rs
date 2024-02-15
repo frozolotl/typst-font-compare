@@ -25,9 +25,6 @@ struct Args {
     /// For an `input.typ`, the output will be `input.variants.pdf`.
     #[clap(short, long)]
     output: Option<PathBuf>,
-    /// Specify a different project root folder.
-    #[clap(long, env = "TYPST_ROOT", value_name = "DIR")]
-    root: Option<PathBuf>,
     /// Whether to try each variant (style, weight, stretch).
     #[clap(short, long)]
     variants: bool,
@@ -44,6 +41,9 @@ struct Args {
     /// Takes priority over the include regex.
     #[clap(short = 'e', long)]
     exclude: Option<String>,
+    /// Specify a different project root folder.
+    #[clap(long, env = "TYPST_ROOT", value_name = "DIR")]
+    root: Option<PathBuf>,
     /// Adds additional directories to search for fonts in.
     #[clap(
         long = "font-path",

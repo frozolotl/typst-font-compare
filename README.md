@@ -41,13 +41,8 @@ Arguments:
 Options:
   -o, --output <OUTPUT>
           Path to the output PDF.
-
+          
           For an `input.typ`, the output will be `input.variants.pdf`.
-
-      --root <DIR>
-          Specify a different project root folder
-
-          [env: TYPST_ROOT=]
 
   -v, --variants
           Whether to try each variant (style, weight, stretch)
@@ -57,22 +52,27 @@ Options:
 
   -i, --include <INCLUDE>
           Only include font families that match this regular expression.
-
+          
           The exclude regex takes priority over this regex.
 
   -e, --exclude <EXCLUDE>
           Exclude font families that match this regular expression.
-
+          
           Takes priority over the include regex.
+
+      --root <DIR>
+          Specify a different project root folder
+          
+          [env: TYPST_ROOT=]
 
       --font-path <DIR>
           Adds additional directories to search for fonts in
-
+          
           [env: TYPST_FONT_PATHS=]
 
       --ppi <PPI>
           The resolution to render the variants to
-
+          
           [default: 300]
 
   -h, --help
