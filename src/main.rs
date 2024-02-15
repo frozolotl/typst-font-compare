@@ -4,6 +4,7 @@ use std::{fmt::Write, path::PathBuf};
 
 use clap::Parser;
 use color_eyre::eyre::{eyre, Context, Result};
+use rayon::prelude::*;
 use regex::Regex;
 use typst::{
     eval::Tracer,
@@ -33,8 +34,15 @@ struct Args {
     #[clap(short, long)]
     fallback: bool,
     /// Only include font families that match this regular expression.
-    #[clap(short = 'r', long)]
-    font_regex: Option<String>,
+    ///
+    /// The exclude regex takes priority over this regex.
+    #[clap(short = 'i', long)]
+    include_regex: Option<String>,
+    /// Exclude font families that match this regular expression.
+    ///
+    /// Takes priority over the include regex.
+    #[clap(short = 'e', long)]
+    exclude_regex: Option<String>,
     /// Adds additional directories to search for fonts in.
     #[clap(
         long = "font-path",
@@ -60,7 +68,9 @@ fn main() -> Result<()> {
 
 /// Render all the variants and return PDF.
 fn render_collection(world: &mut SystemWorld, args: &Args) -> Result<Vec<u8>> {
-    let variants = render_variants(world, args).wrap_err("while rendering variants")?;
+    let variants = render_variants(world.clone(), args).wrap_err("while rendering variants")?;
+
+    eprintln!("Compiling collection...");
 
     let map_pixels = |x| (x as f32) / args.ppi * 72.0;
     let page_width = variants
@@ -141,23 +151,33 @@ fn render_collection(world: &mut SystemWorld, args: &Args) -> Result<Vec<u8>> {
 }
 
 /// Render a PNG image for each font (variant).
-fn render_variants(world: &mut SystemWorld, args: &Args) -> Result<Vec<Render>> {
+fn render_variants(mut world: SystemWorld, args: &Args) -> Result<Vec<Render>> {
     let default_styles = world.library.styles.clone();
-    let font_regex = args
-        .font_regex
+    let include_regex = args
+        .include_regex
         .as_ref()
-        .map(|font_regex| Regex::new(font_regex))
+        .map(|regex| Regex::new(regex))
         .transpose()
-        .wrap_err("failed to compile font regex")?;
+        .wrap_err("failed to compile include regex")?;
+    let exclude_regex = args
+        .exclude_regex
+        .as_ref()
+        .map(|regex| Regex::new(regex))
+        .transpose()
+        .wrap_err("failed to compile exclude regex")?;
 
-    let mut images = Vec::new();
     let mut fonts: Vec<_> = world
         .book
         .families()
         .filter(|(family, _)| {
-            font_regex
+            include_regex
                 .as_ref()
-                .map_or(true, |font_regex| font_regex.is_match(family))
+                .map_or(true, |include_regex| include_regex.is_match(family))
+        })
+        .filter(|(family, _)| {
+            exclude_regex
+                .as_ref()
+                .map_or(true, |exclude_regex| !exclude_regex.is_match(family))
         })
         .flat_map(|(_, mut fonts)| {
             // Only iterate over one font if `--variants` is not set.
@@ -171,56 +191,62 @@ fn render_variants(world: &mut SystemWorld, args: &Args) -> Result<Vec<Render>> 
     // Sort fonts by family first and variant second.
     fonts.sort_by(|a, b| a.family.cmp(&b.family).then(a.variant.cmp(&b.variant)));
 
-    for font in fonts {
-        eprintln!("Compiling for font {} {:?}", font.family, font.variant);
+    let images: Result<_> = fonts
+        .into_par_iter()
+        .map_init(
+            || world.clone(),
+            |world, font| {
+                eprintln!("Compiling for font {} {:?}", font.family, font.variant);
 
-        // Set specified font.
-        world.library.update(|library| {
-            default_styles.clone_into(&mut library.styles);
+                // Set specified font.
+                world.library.update(|library| {
+                    default_styles.clone_into(&mut library.styles);
 
-            library.styles.set(TextElem::set_fallback(args.fallback));
+                    library.styles.set(TextElem::set_fallback(args.fallback));
 
-            library
-                .styles
-                .set_family(FontFamily::new(&font.family), StyleChain::default());
+                    library
+                        .styles
+                        .set_family(FontFamily::new(&font.family), StyleChain::default());
 
-            // Only set variant information if `--variants` is set.
-            if args.variants {
-                library
-                    .styles
-                    .set(TextElem::set_weight(font.variant.weight));
-                library
-                    .styles
-                    .set(TextElem::set_stretch(font.variant.stretch));
-                library.styles.set(TextElem::set_style(font.variant.style));
-            }
-        });
+                    // Only set variant information if `--variants` is set.
+                    if args.variants {
+                        library
+                            .styles
+                            .set(TextElem::set_weight(font.variant.weight));
+                        library
+                            .styles
+                            .set(TextElem::set_stretch(font.variant.stretch));
+                        library.styles.set(TextElem::set_style(font.variant.style));
+                    }
+                });
 
-        // Compile document to PNG.
-        let mut tracer = Tracer::new();
-        let document = typst::compile(world, &mut tracer)
-            .map_err(|diag| eyre!("failed to compile for font {font:?}: {diag:?}"))?;
-        let rendered = typst_render::render_merged(
-            &document,
-            args.ppi / 72.0,
-            Color::WHITE,
-            Abs::pt(4.0),
-            Color::BLACK,
-        );
-        images.push(Render {
-            font: font.clone(),
-            bytes: Bytes::from(rendered.encode_png()?),
-            width: rendered.width(),
-            height: rendered.height(),
-        });
-    }
+                // Compile document to PNG.
+                let mut tracer = Tracer::new();
+                let document = typst::compile(world, &mut tracer)
+                    .map_err(|diag| eyre!("failed to compile for font {font:?}: {diag:?}"))?;
+                let rendered = typst_render::render_merged(
+                    &document,
+                    args.ppi / 72.0,
+                    Color::WHITE,
+                    Abs::pt(4.0),
+                    Color::BLACK,
+                );
+                Ok(Render {
+                    font: font.clone(),
+                    bytes: Bytes::from(rendered.encode_png()?),
+                    width: rendered.width(),
+                    height: rendered.height(),
+                })
+            },
+        )
+        .collect();
 
     // Reset default styles.
     world.library.update(|library| {
         default_styles.clone_into(&mut library.styles);
     });
 
-    Ok(images)
+    images
 }
 
 struct Render {

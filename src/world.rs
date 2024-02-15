@@ -4,7 +4,7 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     fs, io,
     path::{Component, Path, PathBuf},
-    sync::{Mutex, OnceLock},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use color_eyre::eyre::{eyre, Result};
@@ -20,14 +20,15 @@ use typst::{
 
 use crate::Args;
 
+#[derive(Clone)]
 pub(crate) struct SystemWorld {
     pub(crate) library: Prehashed<Library>,
-    pub(crate) book: Prehashed<FontBook>,
+    pub(crate) book: Arc<Prehashed<FontBook>>,
 
     root: PathBuf,
     main: FileId,
-    fonts: Vec<FontSlot>,
-    files: Mutex<HashMap<FileId, Bytes>>,
+    fonts: Arc<Vec<FontSlot>>,
+    files: Arc<Mutex<HashMap<FileId, Bytes>>>,
 }
 
 impl SystemWorld {
@@ -70,11 +71,11 @@ impl SystemWorld {
 
         Ok(SystemWorld {
             library: Prehashed::new(library),
-            book: Prehashed::new(book),
+            book: Arc::new(Prehashed::new(book)),
             root,
             main,
-            fonts,
-            files: Mutex::new(HashMap::new()),
+            fonts: Arc::new(fonts),
+            files: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
