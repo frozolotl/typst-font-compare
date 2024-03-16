@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use typst::{
     eval::Tracer,
-    foundations::{Bytes, StyleChain},
+    foundations::{Bytes, Smart, StyleChain},
     layout::Abs,
     text::{FontFamily, FontInfo, TextElem},
     visualize::Color,
@@ -155,7 +155,7 @@ fn render_collection(world: &mut SystemWorld, args: &Args) -> Result<Vec<u8>> {
     let mut tracer = Tracer::new();
     let document = typst::compile(world, &mut tracer)
         .map_err(|diag| eyre!("failed to compile collection: {diag:?}"))?;
-    Ok(typst_pdf::pdf(&document, None, None))
+    Ok(typst_pdf::pdf(&document, Smart::Auto, None))
 }
 
 /// Render a PNG image for each font (variant).
