@@ -2083,6 +2083,7 @@ dependencies = [
  "termcolor",
  "time",
  "typst",
+ "typst-assets",
  "typst-pdf",
  "typst-render",
 ]

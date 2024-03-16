@@ -49,8 +49,20 @@ impl SystemWorld {
                 book.push(info);
                 fonts.push(FontSlot {
                     index: face.index,
-                    source: face.source.clone(),
+                    source: Some(face.source.clone()),
                     font: OnceLock::new(),
+                });
+            }
+        }
+        #[cfg(feature = "embed-fonts")]
+        for data in typst_assets::fonts() {
+            let buffer = Bytes::from_static(data);
+            for (i, font) in Font::iter(buffer).enumerate() {
+                book.push(font.info().clone());
+                fonts.push(FontSlot {
+                    index: i as u32,
+                    source: None,
+                    font: OnceLock::from(Some(font)),
                 });
             }
         }
@@ -163,7 +175,11 @@ impl World for SystemWorld {
         let slot = &self.fonts[index];
         slot.font
             .get_or_init(|| {
-                let bytes = match &slot.source {
+                let bytes = match slot
+                    .source
+                    .as_ref()
+                    .expect("expected font to have a source set")
+                {
                     fontdb::Source::Binary(bytes) | fontdb::Source::SharedFile(_, bytes) => {
                         Bytes::from((**bytes).as_ref())
                     }
@@ -185,6 +201,6 @@ impl World for SystemWorld {
 
 struct FontSlot {
     index: u32,
-    source: fontdb::Source,
+    source: Option<fontdb::Source>,
     font: OnceLock<Option<Font>>,
 }
